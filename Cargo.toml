@@ -1,14 +1,13 @@
 [package]
-name = "warp_ships"
+name = "warp_test_picard"
 version = "0.1.0"
 authors = ["maxluchs"]
 edition = "2018"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[bin]]
-name = "main"
-path = "src/main.rs"
+name = "ship"
+path = "src/bin/main.rs"
 
 [[bin]]
 name = "seed"
@@ -27,3 +26,5 @@ r2d2 = "0.8.9"
 eyre = "0.6.5"
 uuid = { version = "0.8.2", features = ["v4"] }
 dotenv = "0.15.0"
+tokio = { version = "1.2.0", features = ["full"] }
+serde = { version = "1.0.123", features = ["derive"] }

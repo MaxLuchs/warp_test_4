@@ -1,5 +1,5 @@
 use eyre::Result;
-use warp_ships::db_models::{DB, NewShip};
+use warp_ships::db_models::{NewShip, DB};
 
 #[macro_use]
 extern crate eyre;

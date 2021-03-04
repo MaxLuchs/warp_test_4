@@ -2,6 +2,6 @@ include: .env
 export
 
 watch:
-	RUST_LOG=debug cargo watch -w src -x "lrun --bin main"
+	RUST_LOG=debug cargo watch -w src -x "run --bin ship"
 seed:
-	RUST_LOG=debug cargo lrun --bin seed
+	RUST_LOG=debug cargo run --bin seed
