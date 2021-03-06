@@ -28,7 +28,7 @@ impl Reject for AppError {}
 impl ErrorResponse {
     fn new(error: &AppError) -> ErrorResponse {
         ErrorResponse {
-            error_message: format!("{:?}", error),
+            error_message: format!("{}", *error),
         }
     }
 }
