@@ -1,11 +1,12 @@
 use serde::Serialize;
 use std::convert::Infallible;
 use std::fmt::Debug;
-use std::sync::{Arc, Mutex, MutexGuard};
+use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use warp::reply::Json;
 use warp::{Filter, Rejection};
 use warp_ships::db_models::{Ship, DB};
+use warp_ships::services::{get_all_ships, ServiceError};
 
 #[derive(Serialize, Debug, Clone)]
 struct ErrorResponse {
@@ -49,20 +50,16 @@ async fn main() {
     let db_url = std::env::var("DATABASE_URL").unwrap();
     let db: SharableDB = Arc::new(Mutex::new(DB::new(&db_url)));
 
-    let root = warp::any();
-    let all_ships = root
-        .and(warp::get())
-        .and(warp::any().map(move || db.clone()))
-        .and_then(|db: SharableDB| async move {
-            db.lock()
-                .map_err(|_| warp::reject::custom(AppError::DBError))
-                .and_then(|db: MutexGuard<DB>| {
-                    db.list_ships(None)
-                        .map_err(|_| warp::reject::custom(AppError::ServiceError))
-                })
-                .map(|all_ships: Vec<Ship>| warp::reply::json::<Vec<Ship>>(&all_ships))
+    let get_ships = warp::get()
+        .map(move || db.clone())
+        .map(get_all_ships)
+        .and_then(|result: Result<Vec<Ship>, ServiceError>| async move {
+            result
+                .map(|ships| warp::reply::json(&ships))
+                .map_err(|error: ServiceError| warp::reject::custom(error))
         });
-    let ships = warp::path("ships").and(all_ships);
+    let ships = warp::path("ships").and(get_ships);
+
     let root = warp::any().and(ships).recover(to_response);
     warp::serve(root).run(([127, 0, 0, 1], 4000)).await;
 }
