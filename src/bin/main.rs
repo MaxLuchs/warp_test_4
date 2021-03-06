@@ -1,35 +1,45 @@
 use serde::Serialize;
 use std::convert::Infallible;
+use std::fmt::Debug;
 use std::sync::{Arc, Mutex, MutexGuard};
+use thiserror::Error;
 use warp::reply::Json;
 use warp::{Filter, Rejection};
 use warp_ships::db_models::{Ship, DB};
 
 #[derive(Serialize, Debug, Clone)]
-struct ServiceError {
-    service_name: String,
+struct ErrorResponse {
     error_message: String,
 }
 
-impl ServiceError {
-    fn new(service_name: String, error: String) -> ServiceError {
-        ServiceError {
-            service_name,
-            error_message: error.to_string(),
+#[derive(Debug, Error)]
+enum AppError {
+    #[error("Dont know what happened")]
+    UnknownError,
+    #[error("sthg in the DB didnt work")]
+    DBError,
+    #[error("service crashed")]
+    ServiceError,
+}
+
+use warp::reject::Reject;
+impl Reject for AppError {}
+
+impl ErrorResponse {
+    fn new(error: &AppError) -> ErrorResponse {
+        ErrorResponse {
+            error_message: format!("{:?}", error),
         }
     }
 }
 
-impl warp::reject::Reject for ServiceError {}
+impl warp::reject::Reject for ErrorResponse {}
 
-async fn handle_rejection(rejection: Rejection) -> Result<Json, Infallible> {
+async fn to_response(rejection: Rejection) -> Result<Json, Infallible> {
     let response = rejection
-        .find::<ServiceError>()
-        .map(|err| err.to_owned())
-        .unwrap_or(ServiceError {
-            service_name: "unknown".to_owned(),
-            error_message: "unknown error".to_owned(),
-        });
+        .find::<AppError>()
+        .map(|err: &AppError| ErrorResponse::new(err))
+        .unwrap_or(ErrorResponse::new(&AppError::UnknownError));
     return Ok::<Json, Infallible>(warp::reply::json(&response));
 }
 
@@ -45,21 +55,15 @@ async fn main() {
         .and(warp::any().map(move || db.clone()))
         .and_then(|db: SharableDB| async move {
             db.lock()
-                .map_err(|e| {
-                    warp::reject::custom(ServiceError::new("db".to_owned(), format!("{}", e)))
-                })
+                .map_err(|_| warp::reject::custom(AppError::DBError))
                 .and_then(|db: MutexGuard<DB>| {
-                    db.list_ships(None).map_err(|e| {
-                        warp::reject::custom(ServiceError::new(
-                            "list_ships".to_owned(),
-                            format!("{:?}", e),
-                        ))
-                    })
+                    db.list_ships(None)
+                        .map_err(|_| warp::reject::custom(AppError::ServiceError))
                 })
                 .map(|all_ships: Vec<Ship>| warp::reply::json::<Vec<Ship>>(&all_ships))
         });
     let ships = warp::path("ships").and(all_ships);
-    let root = warp::any().and(ships).recover(handle_rejection);
+    let root = warp::any().and(ships).recover(to_response);
     warp::serve(root).run(([127, 0, 0, 1], 4000)).await;
 }
 
