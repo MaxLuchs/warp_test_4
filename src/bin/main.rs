@@ -20,7 +20,7 @@ enum AppError {
     #[error("sthg in the DB didnt work")]
     DBError,
     #[error("service crashed")]
-    ServiceError,
+    ServiceError(ServiceError),
 }
 
 use warp::reject::Reject;
@@ -56,7 +56,7 @@ async fn main() {
         .and_then(|result: Result<Vec<Ship>, ServiceError>| async move {
             result
                 .map(|ships| warp::reply::json(&ships))
-                .map_err(|error: ServiceError| warp::reject::custom(error))
+                .map_err(|error: ServiceError| warp::reject::custom(AppError::ServiceError(error)))
         });
     let ships = warp::path("ships").and(get_ships);
 
