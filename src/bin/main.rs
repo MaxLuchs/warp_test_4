@@ -7,7 +7,7 @@ use thiserror::Error;
 use warp::reply::Json;
 use warp::{Filter, Rejection};
 use warp_ships::db_models::{NewShip, Ship, DB};
-use warp_ships::services::{add_ship, get_all_ships, ServiceError};
+use warp_ships::services::{add_ship, get_all_ships, remove_ship, ServiceError};
 
 #[macro_use]
 extern crate log;
@@ -27,6 +27,8 @@ enum AppError {
     ServiceError(ServiceError),
     #[error("invalid body")]
     BodyParserError,
+    #[error("Stuff not found")]
+    NotFound,
 }
 
 use std::collections::HashMap;
@@ -99,23 +101,19 @@ async fn main() {
         )
         .map(|ships| warp::reply::json(&ships));
 
-    let remove_ship = warp::delete().and(warp::path::param::<i32>()).map(|id| {
-        info!("id: {}", id);
-        warp::reply::json(&Ship {
-            name: "rr".to_owned(),
-            warp_speed: 3,
-            faction: Some("sss".to_owned()),
-            id: 333,
-        })
-    });
+    let remove_ship = warp::delete()
+        .and(warp::path::param::<i32>())
+        .and(warp::any().map(get_db))
+        .and_then(|id: i32, db: SharableDB| async move {
+            info!("id: {}", id);
+            remove_ship(db, id)
+                .map(|ship| warp::reply::json(&ship))
+                .map_err(|e| warp::reject::custom(e))
+        });
 
     let ships = warp::path("ships").and(get_ships.or(remove_ship).or(add_ship));
 
-    let cors = warp::cors()
-        .allow_methods(&[Method::GET, Method::POST, Method::DELETE])
-        .allow_any_origin();
-
-    let root = warp::any().and(ships).with(cors).recover(to_response);
+    let root = warp::any().and(ships).recover(to_response);
     warp::serve(root).run(([127, 0, 0, 1], 4000)).await;
 }
 

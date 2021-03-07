@@ -6,6 +6,7 @@ use std::sync::{Arc, Mutex};
 pub enum ServiceError {
     Unknown,
     DBError,
+    NotFound,
 }
 
 impl warp::reject::Reject for ServiceError {}
@@ -27,5 +28,13 @@ pub fn add_ship(db: SharableDB, new_ship: NewShip) -> Result<Ship, ServiceError>
     db.lock().map_err(|_| ServiceError::Unknown).and_then(|db| {
         db.insert_new_ship(new_ship)
             .map_err(|_| ServiceError::DBError)
+    })
+}
+
+pub fn remove_ship(db: SharableDB, ship_id: i32) -> Result<Ship, ServiceError> {
+    db.lock().map_err(|_| ServiceError::DBError).and_then(|db| {
+        db.find_by_id(ship_id)
+            .and_then(|result| result.ok_or(ServiceError::Unknown))
+            .and_then(|ship| db.delete(ship).map_err(|_| ServiceError::DBError))
     })
 }

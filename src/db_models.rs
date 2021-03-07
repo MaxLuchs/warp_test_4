@@ -70,4 +70,12 @@ impl DB {
         }
         return Ok(schema::ships::table.get_results::<Ship>(self.con.deref())?);
     }
+
+    pub fn find_by_id(&self, id: i32) -> Result<Option<Ship>, ServiceError> {
+        return schema::ships::table
+            .find::<i32>(id)
+            .first(self.con.deref())
+            .optional()
+            .map_err(|_| ServiceError::DBError);
+    }
 }
