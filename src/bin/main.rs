@@ -84,12 +84,7 @@ async fn main() {
         });
 
     let add_ship = warp::post()
-        .and(warp::body::bytes())
-        .and_then(|body: warp::hyper::body::Bytes| async move {
-            let new_ship: Result<NewShip, serde_json::Error> = serde_json::from_slice(&body);
-            debug!("new ship body : {:?}", &new_ship);
-            return new_ship.map_err(|_| warp::reject::custom(AppError::BodyParserError));
-        })
+        .and(warp::body::json())
         .and(warp::any().map(get_db.clone()))
         .and(warp::any().map(|| "Huhu was geht".to_owned()))
         .and_then(
