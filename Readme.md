@@ -1,5 +1,14 @@
 # Warp
 
+Tutorial:
+
+https://seanmonstar.com/post/176530511587/warp
+https://docs.rs/warp/0.3.0/warp/
+
+Overview of built-in Filters:
+
+https://docs.rs/warp/0.1.23/warp/filters/
+
 ## warp-and
 - and-argument: Takes a Filter-Struct as argument (which is a struct & not a function like the warp-map or warp-and_then expects)
 - the argument-Filter can generate another parameter
