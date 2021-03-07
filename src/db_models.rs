@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Queryable, Identifiable, Serialize)]
 pub struct Ship {
-    id: i32,
-    name: String,
-    warp_speed: i32,
-    faction: Option<String>,
+    pub id: i32,
+    pub name: String,
+    pub warp_speed: i32,
+    pub faction: Option<String>,
 }
 use crate::services::ServiceError;
 use chrono::{Timelike, Utc};
