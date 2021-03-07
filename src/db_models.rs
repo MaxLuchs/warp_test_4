@@ -1,20 +1,24 @@
 use crate::schema;
 use diesel::prelude::*;
 use eyre::Result;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Queryable, Insertable, Identifiable, Serialize)]
+#[derive(Debug, Queryable, Identifiable, Serialize)]
 pub struct Ship {
     id: i32,
     name: String,
     warp_speed: i32,
     faction: Option<String>,
 }
-
+use crate::services::ServiceError;
+use chrono::{Timelike, Utc};
+use diesel::result::DatabaseErrorKind::UnableToSendCommand;
 use schema::ships;
+use std::convert::TryInto;
 use std::ops::Deref;
+use uuid::Uuid;
 
-#[derive(Debug, Insertable, Clone)]
+#[derive(Debug, Insertable, Clone, Serialize, Deserialize)]
 #[table_name = "ships"]
 pub struct NewShip {
     pub name: String,
@@ -33,11 +37,9 @@ impl DB {
     }
 
     pub fn insert_new_ship(&self, new_ship: NewShip) -> Result<Ship> {
-        let id = uuid::Uuid::new_v4().as_u128() as i32;
         let ship_n = new_ship.clone();
         let inserted = diesel::insert_into(schema::ships::table)
-            .values(Ship {
-                id,
+            .values(NewShip {
                 warp_speed: ship_n.warp_speed,
                 faction: ship_n.faction,
                 name: ship_n.name,

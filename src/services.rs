@@ -23,7 +23,7 @@ pub fn get_all_ships(db: SharableDB) -> Result<Vec<Ship>, ServiceError> {
         .and_then(|db| db.list_ships(None).map_err(|_| ServiceError::DBError))
 }
 
-pub fn new_ship(db: SharableDB, new_ship: NewShip) -> Result<Ship, ServiceError> {
+pub fn add_ship(db: SharableDB, new_ship: NewShip) -> Result<Ship, ServiceError> {
     db.lock().map_err(|_| ServiceError::Unknown).and_then(|db| {
         db.insert_new_ship(new_ship)
             .map_err(|_| ServiceError::DBError)
