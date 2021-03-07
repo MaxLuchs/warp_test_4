@@ -5,8 +5,8 @@ use std::fmt::Debug;
 use std::sync::{Arc, Mutex};
 use thiserror::Error;
 use warp::reply::Json;
-use warp::{Filter, Rejection};
-use warp_ships::db_models::{NewShip, Ship, DB};
+use warp::{Filter, Rejection, Reply};
+use warp_ships::db_models::{ListShipsFilter, NewShip, Ship, DB};
 use warp_ships::services::{add_ship, get_all_ships, remove_ship, ServiceError};
 
 #[macro_use]
@@ -75,7 +75,8 @@ async fn main() {
     let get_ships = warp::path::end()
         .and(warp::get())
         .map(get_db.clone())
-        .map(get_all_ships)
+        .and(warp::query())
+        .map(|db: SharableDB, params: ListShipsFilter| get_all_ships(db, params))
         .and_then(|result: Result<Vec<Ship>, ServiceError>| async move {
             result
                 .map(|ships| warp::reply::json(&ships))
@@ -103,7 +104,7 @@ async fn main() {
 
     let remove_ship = warp::delete()
         .and(warp::path::param::<i32>())
-        .and(warp::any().map(get_db))
+        .and(warp::any().map(get_db.clone()))
         .and_then(|id: i32, db: SharableDB| async move {
             info!("id: {}", id);
             remove_ship(db, id)
@@ -112,8 +113,12 @@ async fn main() {
         });
 
     let ships = warp::path("ships").and(get_ships.or(remove_ship).or(add_ship));
+    let test = warp::get()
+        .map(|| "Hallo".to_owned())
+        .map(|text: String| format!("{} da drüben", text))
+        .map(|text: String| warp::reply::with_status(text, warp::http::StatusCode::OK));
 
-    let root = warp::any().and(ships).recover(to_response);
+    let root = warp::any().and(ships.or(test)).recover(to_response);
     warp::serve(root).run(([127, 0, 0, 1], 4000)).await;
 }
 

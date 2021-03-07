@@ -30,6 +30,11 @@ pub struct DB {
     con: Box<diesel::SqliteConnection>,
 }
 
+#[derive(Deserialize)]
+pub struct ListShipsFilter {
+    pub name: Option<String>,
+}
+
 impl DB {
     pub fn new(db_url: &str) -> DB {
         let con = diesel::sqlite::SqliteConnection::establish(db_url).expect("DB not connected");
@@ -62,8 +67,8 @@ impl DB {
         return Ok(ship_to_delete);
     }
 
-    pub fn list_ships(&self, name: Option<String>) -> Result<Vec<Ship>> {
-        if let Some(n) = name {
+    pub fn list_ships(&self, filter: ListShipsFilter) -> Result<Vec<Ship>> {
+        if let Some(n) = filter.name {
             return Ok(schema::ships::table
                 .filter(schema::ships::name.like(format!("%{}%", n)))
                 .get_results::<Ship>(self.con.deref())?);

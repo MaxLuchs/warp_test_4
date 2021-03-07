@@ -1,4 +1,4 @@
-use crate::db_models::{NewShip, Ship, DB};
+use crate::db_models::{ListShipsFilter, NewShip, Ship, DB};
 use serde::Serialize;
 use std::sync::{Arc, Mutex};
 
@@ -18,10 +18,10 @@ where
 
 type SharableDB = Arc<Mutex<DB>>;
 
-pub fn get_all_ships(db: SharableDB) -> Result<Vec<Ship>, ServiceError> {
+pub fn get_all_ships(db: SharableDB, filter: ListShipsFilter) -> Result<Vec<Ship>, ServiceError> {
     db.lock()
         .map_err(|_| ServiceError::Unknown)
-        .and_then(|db| db.list_ships(None).map_err(|_| ServiceError::DBError))
+        .and_then(|db| db.list_ships(filter).map_err(|_| ServiceError::DBError))
 }
 
 pub fn add_ship(db: SharableDB, new_ship: NewShip) -> Result<Ship, ServiceError> {

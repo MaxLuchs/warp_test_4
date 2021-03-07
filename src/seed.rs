@@ -1,5 +1,5 @@
 use eyre::Result;
-use warp_ships::db_models::{NewShip, DB};
+use warp_ships::db_models::{ListShipsFilter, NewShip, DB};
 
 #[macro_use]
 extern crate eyre;
@@ -42,7 +42,7 @@ fn main() -> Result<()> {
     }
 
     // Check:
-    let ships = db.list_ships(None)?;
+    let ships = db.list_ships(ListShipsFilter { name: None })?;
     for ship in ships {
         info!("Ship inserted : {:?}", ship);
     }
